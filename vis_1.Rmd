@@ -5,8 +5,9 @@ date: "2024-09-26"
 output: github_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, message=FALSE, echo=FALSE}
 library(tidyverse)
+library(ggplot2)
 ```
 
 Import the weather data.
@@ -88,3 +89,131 @@ weather_df |>
   geom_point() + 
   geom_smooth(method = "lm", se = FALSE)
 ```
+
+
+## Small things
+
+``` {r}
+weather_df |> 
+  ggplot(aes(x = tmin, y = tmax)) +
+  geom_point(aes(color = name), alpha = .3, size = .8) +
+  geom_smooth(se = FALSE)
+```
+
+
+``` {r}
+# Density plot
+weather_df |> 
+  ggplot(aes(x = tmin, y = tmax)) +
+  geom_hex()
+```
+
+
+``` {r}
+# in ggplot, creates a variable called "blue" rather than use the color "blue"
+# move to geom_point and then it should be better
+weather_df |> 
+  ggplot(aes(x = tmin, y = tmax)) +
+  geom_point(color = "blue")
+
+```
+
+## Univariiate plots
+
+``` {r}
+weather_df |> 
+  ggplot(aes(x = tmin)) +
+  geom_histogram()
+```
+
+
+``` {r}
+# dodge puts the histograms next to each other instead of on top of each other
+weather_df |> 
+  ggplot(aes(x = tmin, fill = name)) +
+  geom_histogram(position = "dodge")
+```
+
+How could I fix this? Using facet?
+
+``` {r}
+weather_df |> 
+  ggplot(aes(x = tmin, fill = name)) +
+  geom_histogram() + 
+  facet_grid(. ~ name)
+```
+
+
+Maybe try a density plot?
+
+``` {r}
+weather_df |> 
+  ggplot(aes(x = tmin, fill = name)) +
+  geom_density(alpha = .3)
+```
+
+``` {r}
+weather_df |> 
+  ggplot(aes(x = name, y = tmin)) +
+  geom_boxplot()
+```
+
+Violin plots!
+
+``` {r}
+weather_df |> 
+  ggplot(aes(x = name, y = tmin, fill = name)) +
+  geom_violin()
+```
+
+Ridge plot
+
+``` {r}
+#ggplot(weather_df, aes(x = tmax, y = name)) + 
+ # geom_density_ridges(scale = .85)
+```
+
+
+#### Learning assessment
+``` {r}
+weather_df |> 
+  ggplot(aes(x = prcp, fill = name)) +
+  geom_histogram(binwidth = 100, position = "dodge")
+```
+
+``` {r}
+weather_df |> 
+  ggplot(aes(x = prcp, fill = name)) +
+  geom_density(alpha = .3)
+
+weather_df |> 
+  filter(prcp > 10) |> 
+  ggplot(aes(x = prcp, fill = name)) +
+  geom_density(alpha = .3)
+```
+
+``` {r}
+weather_df |> 
+  ggplot(aes(y = prcp, x = name)) + 
+  geom_boxplot() 
+```
+
+## Saving and embedding plots
+
+Saving plots:
+``` {r}
+ggp_weather = 
+  weather_df |> 
+  ggplot(aes(x = date, y = tmax, color = name)) +
+  geom_point()
+
+ggsave("plots/ggp_weather.pdf", ggp_weather, width = 8, height = 6)
+```
+
+Embedding plots:
+``` {r, fig.width = 6, fig.asp = .6}
+weather_df |> 
+  ggplot(aes(x = date, y = tmax, color = name)) +
+  geom_point()
+```
+
