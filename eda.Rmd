@@ -7,6 +7,7 @@ output: github_document
 
 ```{r}
 library(tidyverse)
+library(haven)
 ```
 
 ```{r}
@@ -108,3 +109,146 @@ weather_df |>
 ```
 
 ## General numeric summaries.
+
+Let's try some other useful summaries.
+
+Standard statistical summaries are regularly computed in summarize() using functions like mean(), median(), var(), sd(), mad(), IQR(), min(), and max().
+
+```{r}
+weather_df |> 
+  group_by(name, month) |> 
+  summarize(
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    median_tmin = median(tmin, na.rm = TRUE),
+    sd_prcp = sd(prcp, na.rm = TRUE)
+  ) |> 
+  ggplot(aes(x = month, y = mean_tmax, color = name)) +
+  geom_point() +
+  geom_line()
+```
+
+Format for readers. Even though not untidy, a bit more readable.
+
+```{r}
+weather_df |> 
+  group_by(name, month) |> 
+  summarize(
+    mean_tmax = mean(tmax, na.rm = TRUE)
+  ) |> 
+  pivot_wider(
+    names_from = name,
+    values_from = mean_tmax
+  ) |> 
+  knitr::kable(
+    digits = 3,
+    col.names = c("Month", "Central Park", "Molokai", "Waterhole")
+  )
+```
+
+## grouped mutates
+
+```{r}
+weather_df |> 
+  mutate(
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    centered_tmax = tmax - mean_tmax) |> 
+  ggplot(aes(x = date, y = centered_tmax, color = name)) +
+  geom_point()
+```
+
+Find hottest/coldest days.
+
+```{r}
+weather_df |> 
+  group_by(name) |> 
+  mutate(
+    temp_rank = min_rank(desc(tmax))
+  ) |> 
+  filter(temp_rank < 4)
+
+# Create rank and filter all in one shot.
+weather_df |> 
+  group_by(name) |> 
+  filter(min_rank(tmax) < 4) |> 
+  arrange(tmax)
+```
+
+
+Offsets, especially lags, are used to compare an observation to it’s previous value. This is useful, for example, to find the day-by-day change in max temperature within each station over the year:
+
+```{r}
+
+weather_df |> 
+  group_by(name) |> 
+  mutate(
+    lagged_tmax = lag(tmax),
+    temp_change = tmax - lagged_tmax
+  ) |> 
+  filter(min_rank(temp_change) < 3)
+
+weather_df |> 
+  group_by(name) |> 
+  mutate(
+    lagged_tmax = lag(tmax),
+    temp_change = tmax - lagged_tmax
+  ) |> 
+  summarize(
+    sd_tmax_change = sd(temp_change, na.rm = TRUE)
+  )
+```
+
+## Learning assessments.
+
+In the PULSE data, the primary outcome is BDI score; it’s observed over follow-up visits, and we might ask if the typical BDI score values are roughly similar at each. Try to write a code chunk that imports, cleans, and summarizes the PULSE data to examine the mean and median at each visit. Export the results of this in a reader-friendly format.
+
+```{r}
+pulse_data =
+  haven::read_sas("./data/public_pulse_data.sas7bdat") |> 
+  janitor::clean_names()
+
+pulse_data |> 
+  pivot_longer(
+    bdi_score_bl:bdi_score_12m,
+    names_to = "visit",
+    names_prefix = "bdi_score_",
+    values_to = "bdi_score"
+  ) |> 
+  mutate(
+    visit = replace(visit, visit == "bl", "00m")
+  ) |> 
+  group_by(visit) |> 
+  summarize(mean_bdi = mean(bdi_score, na.rm = TRUE)) |> 
+  knitr::kable(digits = 2)
+```
+
+## FAS
+
+```{r}
+litters_df = 
+  read_csv("data/FAS_litters.csv", na = c("NA", "", ".")) |> 
+  janitor::clean_names() |> 
+  separate(
+    group, into = c("dose", "txt_day"), sep = 3
+  )
+
+pups_df = 
+  read_csv("data/FAS_pups.csv", na = c("NA", ".", "")) |> 
+  janitor::clean_names()
+
+fas_df = left_join(pups_df, litters_df, by = "litter_number")
+```
+
+Compute a table that we care about.
+
+```{r}
+fas_df |> 
+  drop_na(dose) |> 
+  group_by(dose, txt_day) |> 
+  summarize(mean_pivot = mean(pd_pivot, na.rm = TRUE)) |> 
+  pivot_wider(
+    names_from = txt_day,
+    values_from = mean_pivot
+  ) |> 
+  knitr::kable(digits = 2)
+```
+
