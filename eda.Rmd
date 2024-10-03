@@ -2,7 +2,7 @@
 title: "EDA"
 author: "Maya Krishnamoorthy"
 date: "2024-10-03"
-output: html_document
+output: github_document
 ---
 
 ```{r}
@@ -50,5 +50,61 @@ weather_df |>
   geom_point()
 ```
 
+## group_by
+
+```{r}
+weather_df |> 
+  group_by(name, month)
+```
+
+Counting stuff
+```{r}
+# Can group by more than one variable
+# Creates a df of name, n_obs, and n_dist
+weather_df |> 
+  group_by(name) |> 
+  summarize(
+    n_obs = n(),
+    n_dist = n_distinct(month)
+  )
+```
 
 
+```{r}
+# Count does the same thing as summarize(n())
+weather_df |> 
+  count(name)
+```
+
+## 2x2
+
+Want to tabulate the frequency of a binary outcome across levels of a binary predictor. In a contrived example, let’s say you want to look at the number of cold and not-cold days in Central Park and Waterhole. This becomes a tidy table.
+
+```{r}
+weather_df |> 
+  drop_na(tmax) |> 
+  mutate(
+    cold = case_when(
+      tmax < 5 ~ "cold",
+      tmax >= 5 ~ "not cold"
+    )
+  ) |> 
+  group_by(name, cold) |> 
+  summarize(count = n())
+```
+
+Using janitor (not tidy, but more standard).
+
+```{r}
+weather_df |> 
+  drop_na(tmax) |> 
+  mutate(
+    cold = case_when(
+      tmax < 5 ~ "cold",
+      tmax >= 5 ~ "not cold"
+    )
+  ) |> 
+  janitor::tabyl(name, cold)
+```
+
+## General numeric summaries.
